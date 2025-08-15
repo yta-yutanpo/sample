@@ -1,11 +1,12 @@
 import random
 import tkinter as tk
 from collections import Counter
+from PIL import Image, ImageDraw, ImageFont, ImageTk
 
 # 画面の作成
 root = tk.Tk()
 root.title('ポーカーゲーム')
-root.geometry('300x250')
+root.geometry('1500x1000')
 root.configure(bg='white')
 
 # フレームの用意
@@ -26,16 +27,26 @@ def switch_frame(frame):
 
 # トランプの作成
 card_number_list = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
-card_suits = ['S', 'D', 'H', 'C']
+spade = "\u2660"
+heart = "\u2665"
+diamond = "\u2666"
+club = "\u2663"
+card_suits = [spade, heart, diamond, club]
 card_list = [(s, n) for s in card_suits for n in card_number_list]
 
 # GUI用ラベル
 label_cards = tk.Label(game_frame, text="", font=('Helvetica', 14), bg='white')
 label_cards.pack()
+# カード画像用フレームを追加
+card_image_frame = tk.Frame(game_frame, bg='white', width=500, height=180)
+card_image_frame.pack()
 label_hand = tk.Label(game_frame, text="", font=('Helvetica', 10), bg='white')
 label_hand.pack()
 label_result = tk.Label(game_frame, text="", font=('Helvetica', 10), bg='white')
 label_result.pack()
+
+
+
 
 # スコアランク定義
 score_rank = {
@@ -95,6 +106,53 @@ def judge_hand(cards):
     else:
         return '役なし'
 
+
+#カードの画像を作る関数
+def create_card_image(cards):
+    # 既存のカードラベルを削除
+    #game_frame内のすべての部品を取得する
+    for widget in game_frame.winfo_children():
+        #tk.Labelかつis_card属性を持つ部品を削除
+        if isinstance(widget, tk.Label) and hasattr(widget, "is_card"):
+            widget.destroy()
+    card_images = []
+    # カードの画像を生成
+    for idx, (suit, num) in enumerate(cards):
+        # 白背景の画像を生成(80x120ピクセル)
+        img = Image.new("RGB", (80, 120), (255, 255, 255))
+        # 画像に描けるようにする
+        draw = ImageDraw.Draw(img)
+        #カードの枠線を描く
+        draw.rectangle([(0, 0), (79, 119)], outline="black", width=2)
+        #フォントの指定(記号や絵文字も表示できるように)(なければデフォルト)
+        try:
+            font = ImageFont.truetype("seguisym.ttf", 32)
+        except:
+            font = ImageFont.load_default()
+        #カードのスートと数字を描く
+        #ハート・ダイヤならば赤、クローバー・スペードならば黒
+        if suit in [heart, diamond]:
+            suit_color = (255, 0, 0)
+        else:
+            suit_color = (0, 0, 0)
+        draw.text((10, 10), suit, fill=suit_color, font=font)
+        draw.text((30, 60), str(num), fill=(0, 0, 0), font=font)
+        #pillow画像をTkinter用に変換
+        tk_img = ImageTk.PhotoImage(img)
+        # 画像をカード画像フレームに追加
+        card_images.append(tk_img)
+        label = tk.Label(card_image_frame, image=tk_img, bg='white')
+        label.is_card = True  # カードラベルの目印(カードラベルならばTrue)
+        #ラベル自身に画像を持たせて消えないようにする
+        label.image = tk_img  # 参照保持
+        #画像を横並びに配置
+        label.place(x=10 + idx * 90, y=50)
+    # 参照保持のためgame_frameに属性として保存(card_imagesが消えないようにするため)
+    game_frame.card_images = card_images
+        
+
+    
+#カードを引いた時の処理
 def card_hand_out():
     deck = card_list[:]
     random.shuffle(deck)
@@ -105,7 +163,8 @@ def card_hand_out():
     cpu_hand = judge_hand(cpu_card)
 
     card_text = '  '.join([f'{suit}{num}' for suit, num in player_card])
-    label_cards.config(text=f'あなたの手札：\n{card_text}')
+    label_cards.config(text=f'あなたの手札：')
+    create_card_image(player_card)
     label_hand.config(text=f'あなたの役 : {player_hand}')
 
     # 勝敗表示
@@ -126,8 +185,12 @@ button_hand_out = tk.Button(game_frame, text='5枚引く', bg='lightblue', fg='b
                             font=('Helvetica', 10, 'bold'), relief='raised', bd=10, command=card_hand_out)
 button_hand_out.pack()
 
+def back_to_title():
+    game_frame.pack_forget()
+    title_frame.pack()
+
 button_back = tk.Button(game_frame, text='タイトルに戻る', bg='lightblue', fg='black',
-                        font=('Helvetica', 10, 'bold'), relief='raised', bd=10, command=lambda: switch_frame(title_frame))
+                        font=('Helvetica', 10, 'bold'), relief='raised', bd=10, command=back_to_title)
 button_back.pack()
 
 root.mainloop()
