@@ -141,15 +141,33 @@ def create_card_image(cards):
         tk_img = ImageTk.PhotoImage(img)
         # 画像をカード画像フレームに追加
         card_images.append(tk_img)
-        label = tk.Label(card_image_frame, image=tk_img, bg='white')
-        label.is_card = True  # カードラベルの目印(カードラベルならばTrue)
+        #カード画像にボタン機能をつける
+        card_button = tk.Button(card_image_frame, image=tk_img, bg='white', fg='black',
+                            font=('Helvetica', 10, 'bold'), bd=5)
+        card_button.is_card = True  # カードラベルの目印(カードラベルならばTrue)
         #ラベル自身に画像を持たせて消えないようにする
-        label.image = tk_img  # 参照保持
+        card_button.image = tk_img  # 参照保持
         #画像を横並びに配置
-        label.place(x=10 + idx * 90, y=50)
+        card_button.place(x=10 + idx * 90, y=50)
+        # 画像をクリックしたときの処理を設定(押したボタンが機能するようにLambdaを使うらしい)
+        card_button.config(command=lambda btn=card_button: card_select(btn))
     # 参照保持のためgame_frameに属性として保存(card_imagesが消えないようにするため)
     game_frame.card_images = card_images
         
+#カードを選択したときに上に上がる処理
+def card_select(card_button):
+    # 現在の位置を取得
+    x = card_button.winfo_x()
+    y = card_button.winfo_y()
+    # すでに上がっていれば下げる、そうでなければ上げる(ボタンにis_selected属性を追加している)
+    # getattr(オブジェクト, "属性名", デフォルト値)で属性が存在しない場合にデフォルト値を返す
+    # ここでは"is_selected"属性がFalseならばデフォルトのFalseを返す
+    if getattr(card_button, "is_selected", False):
+        card_button.place(x=x, y=y+20)
+        card_button.is_selected = False
+    else:
+        card_button.place(x=x, y=y-20)
+        card_button.is_selected = True
 
     
 #カードを引いた時の処理
