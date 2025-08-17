@@ -111,9 +111,9 @@ def judge_hand(cards):
 def create_card_image(cards):
     # 既存のカードラベルを削除
     #game_frame内のすべての部品を取得する
-    for widget in game_frame.winfo_children():
-        #tk.Labelかつis_card属性を持つ部品を削除
-        if isinstance(widget, tk.Label) and hasattr(widget, "is_card"):
+    for widget in card_image_frame.winfo_children():
+        #is_card属性(True)を持つ部品を削除
+        if hasattr(widget, "is_card"):
             widget.destroy()
     card_images = []
     # カードの画像を生成
@@ -151,31 +151,43 @@ def create_card_image(cards):
         card_button.place(x=10 + idx * 90, y=50)
         # 画像をクリックしたときの処理を設定(押したボタンが機能するようにLambdaを使うらしい)
         card_button.config(command=lambda btn=card_button: card_select(btn))
+        card_button.card_index = idx  # ボタンにカードのインデックスを保存
     # 参照保持のためgame_frameに属性として保存(card_imagesが消えないようにするため)
     game_frame.card_images = card_images
         
+seleceted_indices = set() # 選択されたカードのインデックスを保持するセット
+
 #カードを選択したときに上に上がる処理
 def card_select(card_button):
     # 現在の位置を取得
     x = card_button.winfo_x()
     y = card_button.winfo_y()
+    #ボタンにcard_index属性がなければ何もしない(Noneを返す)
+    #安全装置としての認識らしい(事故防止)
+    idx = getattr(card_button, "card_index", None)
+    if idx is None:
+        return
     # すでに上がっていれば下げる、そうでなければ上げる(ボタンにis_selected属性を追加している)
     # getattr(オブジェクト, "属性名", デフォルト値)で属性が存在しない場合にデフォルト値を返す
     # ここでは"is_selected"属性がFalseならばデフォルトのFalseを返す
     if getattr(card_button, "is_selected", False):
         card_button.place(x=x, y=y+20)
         card_button.is_selected = False
+        selected_indices.discard(idx) 
     else:
         card_button.place(x=x, y=y-20)
         card_button.is_selected = True
+        selected_indices.add(idx) 
 
     
 #カードを引いた時の処理
 def card_hand_out():
+    global player_card, cpu_card, selected_indices
     deck = card_list[:]
     random.shuffle(deck)
     player_card = deck[:5]
     cpu_card = deck[5:10]
+    selected_indices = set()
 
     player_hand = judge_hand(player_card)
     cpu_hand = judge_hand(cpu_card)
@@ -197,11 +209,33 @@ def card_hand_out():
         result = "引き分け！"
 
     label_result.config(text=f'CPUの役 : {cpu_hand}\n結果 : {result}')
+    button_redraw.pack() #引き直しボタンを設置
+
+#選択したカードを引き直すための関数
+def redraw_selected_cards():
+    global player_card, selected_indices
+    if not selected_indices:
+        return  # 選択されたカードがない場合は何もしない
+    #山札から、すでに配られたカードを除外する(残りの山札がdeck)
+    used_cards = set(player_card + cpu_card)
+    deck = [card for card in card_list if card not in used_cards]
+    new_cards = []
+    for idx in selected_indices:
+        new_card = deck.pop()
+        player_card[idx] = new_card
+    #選択状態をリセット
+    selected_indices.clear()
+    create_card_image(player_card)
+    player_hand = judge_hand(player_card)
+    label_hand.config(text=f'あなたの役 : {player_hand}')
 
 # ボタンなどのUI
 button_hand_out = tk.Button(game_frame, text='5枚引く', bg='lightblue', fg='black',
                             font=('Helvetica', 10, 'bold'), relief='raised', bd=10, command=card_hand_out)
 button_hand_out.pack()
+
+button_redraw = tk.Button(game_frame, text='選択したカードを引き直す', bg='lightblue', fg='black',
+                          font=('Helvetica', 10, 'bold'), relief='raised', bd=10, command=redraw_selected_cards)
 
 def back_to_title():
     game_frame.pack_forget()
