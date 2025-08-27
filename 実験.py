@@ -179,9 +179,8 @@ def card_select(card_button):
         card_button.is_selected = True
         selected_indices.add(idx) 
     if selected_indices:
-        #選択したカードの引き直しボタン
-        button_redraw = tk.Button(game_frame, text='選択したカードを引き直す', bg='lightblue', fg='black',
-                          font=('Helvetica', 10, 'bold'), relief='raised', bd=10, command=redraw_selected_cards)
+        button_redraw.pack() #引き直しボタンを設置
+        
 
     
 #カードを引いた時の処理
@@ -202,7 +201,6 @@ def card_hand_out():
     label_hand.config(text=f'あなたの役 : {player_hand}')
     judge_winner(player_hand, cpu_hand)
 
-    button_redraw.pack() #引き直しボタンを設置
     button_hand_out.pack_forget() #5枚引くボタンを消す
 
 result = ""  # 勝敗結果を保持する変数
@@ -239,6 +237,7 @@ def redraw_selected_cards():
     player_hand = judge_hand(player_card)
     label_hand.config(text=f'あなたの役 : {player_hand}')
     judge_winner(player_hand, cpu_hand)
+    button_redraw.pack_forget() #引き直しボタンを消す
 
 #結果を表示する関数
 def show_result():
@@ -250,6 +249,9 @@ button_hand_out = tk.Button(game_frame, text='5枚引く', bg='lightblue', fg='b
                             font=('Helvetica', 10, 'bold'), relief='raised', bd=10, command=card_hand_out)
 button_hand_out.pack()
 
+#選択したカードの引き直しボタン
+button_redraw = tk.Button(game_frame, text='選択したカードを引き直す', bg='lightblue', fg='black',
+                          font=('Helvetica', 10, 'bold'), relief='raised', bd=10, command=redraw_selected_cards)
 
 #勝負するボタン
 button_battle = tk.Button(game_frame, text='勝負する', bg='lightblue', fg='black',
