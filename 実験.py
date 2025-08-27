@@ -178,11 +178,15 @@ def card_select(card_button):
         card_button.place(x=x, y=y-20)
         card_button.is_selected = True
         selected_indices.add(idx) 
+    if selected_indices:
+        #選択したカードの引き直しボタン
+        button_redraw = tk.Button(game_frame, text='選択したカードを引き直す', bg='lightblue', fg='black',
+                          font=('Helvetica', 10, 'bold'), relief='raised', bd=10, command=redraw_selected_cards)
 
     
 #カードを引いた時の処理
 def card_hand_out():
-    global player_card, cpu_card, selected_indices
+    global player_card, cpu_card, selected_indices, cpu_hand, player_hand, cpu_hand
     deck = card_list[:]
     random.shuffle(deck)
     player_card = deck[:5]
@@ -196,8 +200,16 @@ def card_hand_out():
     label_cards.config(text=f'あなたの手札：')
     create_card_image(player_card)
     label_hand.config(text=f'あなたの役 : {player_hand}')
+    judge_winner(player_hand, cpu_hand)
 
-    # 勝敗表示
+    button_redraw.pack() #引き直しボタンを設置
+    button_hand_out.pack_forget() #5枚引くボタンを消す
+
+result = ""  # 勝敗結果を保持する変数
+
+#勝敗を判定する関数
+def judge_winner(player_hand, cpu_hand):
+    global result
     player_score = score_rank[player_hand]
     cpu_score = score_rank[cpu_hand]
 
@@ -208,9 +220,6 @@ def card_hand_out():
     else:
         result = "引き分け！"
 
-    label_result.config(text=f'CPUの役 : {cpu_hand}\n結果 : {result}')
-    button_redraw.pack() #引き直しボタンを設置
-
 #選択したカードを引き直すための関数
 def redraw_selected_cards():
     global player_card, selected_indices
@@ -219,6 +228,7 @@ def redraw_selected_cards():
     #山札から、すでに配られたカードを除外する(残りの山札がdeck)
     used_cards = set(player_card + cpu_card)
     deck = [card for card in card_list if card not in used_cards]
+    random.shuffle(deck)
     new_cards = []
     for idx in selected_indices:
         new_card = deck.pop()
@@ -228,21 +238,38 @@ def redraw_selected_cards():
     create_card_image(player_card)
     player_hand = judge_hand(player_card)
     label_hand.config(text=f'あなたの役 : {player_hand}')
+    judge_winner(player_hand, cpu_hand)
+
+#結果を表示する関数
+def show_result():
+    label_result.config(text=f'CPUの役 : {cpu_hand}\n結果 : {result}')
 
 # ボタンなどのUI
+#カードを5枚配るボタン
 button_hand_out = tk.Button(game_frame, text='5枚引く', bg='lightblue', fg='black',
                             font=('Helvetica', 10, 'bold'), relief='raised', bd=10, command=card_hand_out)
 button_hand_out.pack()
 
-button_redraw = tk.Button(game_frame, text='選択したカードを引き直す', bg='lightblue', fg='black',
-                          font=('Helvetica', 10, 'bold'), relief='raised', bd=10, command=redraw_selected_cards)
 
+#勝負するボタン
+button_battle = tk.Button(game_frame, text='勝負する', bg='lightblue', fg='black',
+                          font=('Helvetica', 10, 'bold'), relief='raised', bd=10, command=show_result)
+button_battle.pack()
+
+# タイトルに戻るボタン
 def back_to_title():
     game_frame.pack_forget()
     title_frame.pack()
 
 button_back = tk.Button(game_frame, text='タイトルに戻る', bg='lightblue', fg='black',
                         font=('Helvetica', 10, 'bold'), relief='raised', bd=10, command=back_to_title)
-button_back.pack()
+button_back.pack(side='bottom')
 
 root.mainloop()
+
+
+#今後の改善の流れ　
+# １．結果は引き直しをした後に表示するようにする(専用のボタンを用意する)←完了
+# ２．引き直しの回数制限を設ける(３回)
+# ３．CPUの思考ルーチンを作成する(引き直しの判断)
+# ４．賭けの概念を導入する(所持金、ベット、勝敗による増減)
